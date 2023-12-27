@@ -67,7 +67,7 @@ Vector2 KERNEL::GetScreenResolution()
 
 #elif __linux__  // Linux
 
-Vector2 Kernel::GetScreenResolution() 
+Vector2 KERNEL::GetScreenResolution() 
 {
     Display* display = XOpenDisplay(NULL);
     Screen* screen = DefaultScreenOfDisplay(display);

@@ -5,6 +5,7 @@ import glob
 import shutil
 import re
 import subprocess
+import platform
 
 from pathlib import Path
 
@@ -22,6 +23,13 @@ cpp_files = None
 hpp_files = None
 
 compile_stack = []
+
+#endregion
+
+#region platform functions
+
+def get_os():
+    return f"{platform.system()}"
 
 #endregion
 
@@ -67,20 +75,20 @@ def printHelp():
     prints(": Show help and usage information for Alce CLI commands\n")
 
     prints("\nInit Command:\n\n", "underline")
-    prints(" --init, -i", "green")
+    prints(" init, i", "green")
     prints(": Creates the required configuration file \"./Build/settings.json\" with the next fields.\n")
 
     prints("\nCompilation Commands:\n\n", "underline")
-    prints(" --compile, -c", "green")
-    prints(": Compile the project. Use [./Build/alce --compile --help] for more info.\n")
+    prints(" compile, c", "green")
+    prints(": Compile the project. Use [./Build/alce compile --help] for more info.\n")
 
     prints("\nRun Commands:\n\n", "underline")
-    prints(" --run, -r", "green")
-    prints(": Runs the project. Use [./Build/alce --run --help] for more info.\n")
+    prints(" run, r", "green")
+    prints(": Runs the project. Use [./Build/alce run --help] for more info.\n")
 
     prints("\nGeneration Commands:\n\n", "underline")
-    prints(" --generate, -g", "green")
-    prints(": Generate elements like components, scenes, or objects. Use [./Build/alce --generate --help] for more info.\n")
+    prints(" generate, g", "green")
+    prints(": Generate elements like components, scenes, or objects. Use [./Build/alce generate --help] for more info.\n")
 
     prints("\nNote:\n", "underline")
     prints("Make sure to configure the MinGW (GCC v13.1.0^) 32bits compiler path in the ")
@@ -119,19 +127,19 @@ def handleArguments(argument_stack):
                 printHelp()
                 sys.exit(0)
 
-            if v == "--init" or v == "-i":
+            if v == "init" or v == "i":
                 None
 
             # Compile the project
-            elif v == "--compile" or v == "-c":
+            elif v == "compile" or v == "c":
                 tasks.append("compile 0")
 
             # Run the compiled project
-            elif v == "--run" or v == "-r":
+            elif v == "run" or v == "r":
                 tasks.append("run 0 release")
 
             # Generate element (component, scene, object)
-            elif v == "--generate" or v == "-g":
+            elif v == "generate" or v == "g":
                 tasks.append("generate 0")
 
             else:
@@ -147,10 +155,10 @@ def handleArguments(argument_stack):
                 sys.exit(1)
 
             # Compiling options (express build, full build, build mode)
-            if first == "--compile" or first == "-c":
+            if first == "compile" or first == "c":
 
                 # Alias name
-                if v.split("=")[0] == "--alias" or v.split("=")[0] == "-a":
+                if v.split("=")[0] == "alias" or v.split("=")[0] == "a":
                     if not isAliasValid(v.split('=')[-1]):
                         error(f"Invalid alias name \"{v.split('=')[-1]}\"")
                         sys.exit(1)
@@ -159,7 +167,7 @@ def handleArguments(argument_stack):
                     tasks.append(f"compile {v.split('=')[-1]}")
 
                 # Build mode (development, release)
-                elif v.split("=")[0] == "--mode" or v.split("=")[0] == "-m":
+                elif v.split("=")[0] == "mode" or v.split("=")[0] == "m":
                     if len(v.split("=")) < 2:
                         error(f"Invalid use of argument \"{v.split('=')[0]}\", value is missing.")
                         sys.exit(1)
@@ -180,10 +188,10 @@ def handleArguments(argument_stack):
                     build_express = False
             
             # Run options (select alias)
-            elif first == "--run" or first == "-r":
+            elif first == "run" or first == "r":
                 
                 # Run alias
-                if v.split("=")[0] == "--alias" or v.split("=")[0] == "-a":
+                if v.split("=")[0] == "alias" or v.split("=")[0] == "a":
                     if not isAliasValid(v.split("=")[1]):
                         error(f"Invalid alias name \"{v.split('=')[1]}\"")
                         sys.exit(1)
@@ -209,18 +217,18 @@ def handleArguments(argument_stack):
                             tasks.append(f"run {task.split(' ')[1]} debug")
 
                 elif v != "--help" and v != "-h":
-                    error(f"Invalid argument \"v\". Use [alce --run --help] for more info.")
+                    error(f"Invalid argument \"v\". Use [alce run --help] for more info.")
                     sys.exit(1)
                             
             # Generation options (component, scene, object)
-            elif first == "--generate" or first == "-g":
+            elif first == "generate" or first == "g":
 
                 if len(v.split("=")) < 2 and (v.split("=")[0] != "--help" and v.split("=")[0] != "-h"):
                     error(f"Invalid use of argument \"{v.split('=')[0]}\", class name is missing.")
                     sys.exit(1)
 
                 # Generate new component (Alce)
-                if v.split("=")[0] == "--component" or v.split("=")[0] == "-c":
+                if v.split("=")[0] == "component" or v.split("=")[0] == "c":
                     if not isClassNameValid(v.split("=")[-1]):
                         error(f"Invalid class name \"{v.split('=')[-1]}\"")
                         sys.exit(1)
@@ -228,7 +236,7 @@ def handleArguments(argument_stack):
                     tasks.remove("generate 0")
 
                 # Generate new scene (Project)
-                elif v.split("=")[0] == "--scene" or v.split("=")[0] == "-s":
+                elif v.split("=")[0] == "scene" or v.split("=")[0] == "s":
                     if not isClassNameValid(v.split("=")[-1]):
                         error(f"Invalid class name \"{v.split('=')[-1]}\"")
                         sys.exit(1)
@@ -236,9 +244,9 @@ def handleArguments(argument_stack):
                     tasks.remove("generate 0")
 
                 # Generate new GameObject (Project)
-                elif v.split("=")[0] == "--object" or v.split("=")[0] == "-o":
+                elif v.split("=")[0] == "object" or v.split("=")[0] == "o":
                     if len(v.split("=")[-1].split("@")) != 2:
-                        error("Invalid use of --object argument.")
+                        error("Invalid use of [object] argument.")
                         sys.exit(1)
 
                     scene = v.split("=")[-1].split("@")[0]
@@ -247,9 +255,9 @@ def handleArguments(argument_stack):
                     tasks.remove("generate 0")
 
                 # Generate method implementation
-                elif v.split("=")[0] == "--implementation" or v.split("=")[0] == "-i":
+                elif v.split("=")[0] == "implementation" or v.split("=")[0] == "i":
                     if len(v.split("=")[-1].split("@")) < 2:
-                        error("Invalid use of --implementation argument.")
+                        error("Invalid use of [implementation] argument.")
                         sys.exit(1)
                     
                     target_type = v.split("=")[-1].split("@")[0]
@@ -262,7 +270,7 @@ def handleArguments(argument_stack):
                     error(f"Invalid argument \"{v.split('=')[0]}\" for generation command.")
                     sys.exit(1)
 
-            elif first == "--init" or first == "-i":
+            elif first == "init" or first == "i":
                 None
 
             else:
@@ -271,16 +279,16 @@ def handleArguments(argument_stack):
             
             if v == "--help" or v == "-h":
                 # Compile command help
-                if last == "--compile" or last == "-c":
+                if last == "compile" or last == "c":
                     prints("\nDescription:\n\n", "underline")
                     prints("  Compiles the project using an alias name.\n")
                     prints("\nCommand usage:\n\n", "underline")
                     prints("  ./Build/alce", "grey")
-                    prints(" [--compile, -c] [--alias, -a]", "green")
+                    prints(" compile, c] [alias, a]", "green")
                     prints("=<")
                     prints("alias_name", "yellow")
                     prints("> ")
-                    prints("[--mode, -m]", "green")
+                    prints("[mode, m]", "green")
                     prints("<")
                     prints("development", "magenta")
                     prints("|")
@@ -295,26 +303,26 @@ def handleArguments(argument_stack):
                     prints("  [--full, -f]", "green")
                     prints(": compiles all files in the project.\n\n")
                     prints("Build modes:\n\n", "underline")
-                    prints("  [--mode, -m]=development", "green")
+                    prints("  [mode, m]=development", "green")
                     prints(": the project execution will be accompanied by a debugging console.\n\n")
-                    prints("  [--mode, -m]=release", "green")
+                    prints("  [mode, m]=release", "green")
                     prints(": the project execution will be clean and free of debugging information\n\n")
                     prints("Default values:\n\n", "underline")
                     prints("  Compilation Method: ")
                     prints("--full\n\n", "magenta")
                     prints("  Build Mode: ")
-                    prints("--mode=development\n\n", "magenta")
+                    prints("mode=development\n\n", "magenta")
                     prints("Examples:\n\n", "underline")
-                    prints("  ./Build/alce --compile --alias=your_project_alias", "grey")
+                    prints("  ./Build/alce compile alias=your_project_alias", "grey")
                     prints(": Compile the project using default values.\n\n")
-                    prints("  ./Build/alce --compile --alias=compile_test --express", "grey")
+                    prints("  ./Build/alce compile alias=compile_test --express", "grey")
                     prints(": only compiles modified and untracked files in the project.\n\n")
-                    prints("  ./Build/alce --compile --alias=compile_test --full", "grey")
+                    prints("  ./Build/alce compile alias=compile_test --full", "grey")
                     prints(": compiles all files in the project.\n\n")
                 # Run command help
-                elif (last == "--run" or last == "-r") and not ("compile" in tasks):
+                elif (last == "run" or last == "r") and not ("compile" in tasks):
                     prints("\nCommand usage:\n\n", "underline")
-                    prints("  [--run, -r] [--alias, -a]=<alias> <options>", "green")
+                    prints("  [run, r] [alias, a]=<alias> <options>", "green")
                     prints(": executes a compiled build of project by alias name.\n\n")
                     prints("Options:\n\n", "underline")
                     prints("  [--debug, -d]", "green")
@@ -322,28 +330,28 @@ def handleArguments(argument_stack):
                     prints("  [--release, -re]", "green")
                     prints(": run the project as release.\n\n")
                     prints("Examples:\n\n", "underline")
-                    prints("  ./Build/alce --run --alias=run_test --debug", "grey")
+                    prints("  ./Build/alce run alias=run_test --debug", "grey")
                     prints(": executes alias \"run_test\" with gdb.\n\n")
-                    prints("  ./Build/alce --run --alias=run_test", "grey")
+                    prints("  ./Build/alce run alias=run_test", "grey")
                     prints(": executes alias \"run_test\" as release (by default).\n\n")
                 # Generate command help
-                elif last == "--generate" or last == "-g":
+                elif last == "generate" or last == "g":
                     prints("\nCommand usage:\n\n", "underline")
-                    prints("  [--generate, -g] [--component, -c]=<class_name> | [--scene, -s]=<scene_name> | [--object, -o]=<scene_name>@<object_name>]", "green")
+                    prints("  [generate, g] [component, c]=<class_name> | [scene, s]=<scene_name> | [object, o]=<scene_name>@<object_name>]", "green")
                     prints(": generates a new entity (Component or Scene or Object) in the project.\n\n")
-                    prints("  [--generate, -g] [--implementation, -i]=<target_type>@<sceneName?>@<target_name>", "green")
+                    prints("  [generate, g] [implementation, i]=<target_type>@<sceneName?>@<target_name>", "green")
                     prints(": implements all the methods with the \"//@impl\" decorator in the targeted class.\n\n")
                     prints("Examples:\n\n", "underline")
-                    prints("  ./Build/alce --generate --component=MyComponent", "grey")
+                    prints("  ./Build/alce generate component=MyComponent", "grey")
                     prints(": generates a new component named \"MyComponent\"\n\n")
-                    prints("  ./Build/alce --generate --scene=MyScene", "grey")
+                    prints("  ./Build/alce generate scene=MyScene", "grey")
                     prints(": generates a new scene named \"MyScene\"\n\n")
-                    prints("  ./Build/alce --generate --object=MyScene@Player", "grey")
+                    prints("  ./Build/alce generate object=MyScene@Player", "grey")
                     prints(": generates a new object named \"Player\" in \"MyScene\"\n\n")      
-                    prints("  ./Build/alce --generate --implementation=MyScene@Player", "grey")
+                    prints("  ./Build/alce generate implementation=MyScene@Player", "grey")
                     prints(": implements all methods with \"//@impl\" decorator in the \"Player\" object class of scene \"MyScene\"\n\n")  
                 # TODO: Init command help
-                elif last == "--init" or last == "-i":
+                elif last == "init" or last == "i":
                     prints("TODO:\n", "blue")
                 else:
                     prints("\nUndefined help display for this command, use ")
@@ -646,7 +654,7 @@ def generateImplementation(target_type, target_name):
 
     elif target_type.lower() == "object":
         if len(target_name.split("$")) != 2:
-            error(f"Invalid object name format. Use [alce --generate --implementation=object$<scene_name>$<object_name>]")
+            error(f"Invalid object name format. Use [./Build/alce generate implementation=object$<scene_name>$<object_name>]")
             sys.exit(1)
         if not isDir(f"./../Source/Project/Scenes/{target_name.split('$')[0]}/{target_name.split('$')[1]}"):
             error(f"There is no game object named \"{target_name.split('$')[1]}\" in the scene {target_name.split('$')[0]}.")
@@ -873,7 +881,14 @@ def build():
 
     makefile.close()
 
-    if os.system("mingw32-make -f Temp/Makefile") != 0:
+    make = None
+
+    if get_os() == "Windows":
+        make = "mingw32-make"
+    if get_os() == "Linux":
+        make = "make"
+
+    if os.system(f"{make} -f Temp/Makefile") != 0:
         os.remove("Temp/Makefile")
         return False
     else:
@@ -969,7 +984,7 @@ def link(alias):
 def run(alias, mode):
 
     if not isDir("./Out"):
-        error("Build/Out folder is missing. Use [alce --compile] to generate it")
+        error("Build/Out folder is missing. Use [alce compile] to generate it")
         sys.exit(1)
     
     if not isDir(f"./Out/{alias}"):
@@ -1035,7 +1050,7 @@ if __name__ == '__main__':
     arguments = dict(enumerate(sys.argv[1:], start = 1))
 
     if arguments.__len__() == 1:
-        if arguments[1] == "--init" or arguments[1] == "-i":
+        if arguments[1] == "init" or arguments[1] == "i":
             initProject()
             sys.exit(0)
 
@@ -1058,7 +1073,7 @@ if __name__ == '__main__':
 
         if task.split(" ")[0] == "compile":
             if task.split(" ")[-1] == "0":
-                error("Undefined alias. Use [alce --compile --help] for more info.")
+                error("Undefined alias. Use [alce compile --help] for more info.")
                 sys.exit(1)
             
             alias = task.split(" ")[-1]
@@ -1069,7 +1084,7 @@ if __name__ == '__main__':
         
         if task.split(" ")[0] == "run":
             if task.split(" ")[1] == "0":
-                error("Undefined alias. Use [alce --run --help] for more info.")
+                error("Undefined alias. Use [./Build/alce run --help] for more info.")
                 sys.exit(1)
             
             alias = task.split(" ")[1]
@@ -1078,7 +1093,7 @@ if __name__ == '__main__':
         
         if task.split(" ")[0] == "generate":    
             if task.split(" ")[1] == "0":
-                error("Undefined generation. Use [alce --generation --help] for more info.")
+                error("Undefined generation. Use [./Build/alce generation --help] for more info.")
                 sys.exit(1)
 
             generation_type = task.split(" ")[1]
